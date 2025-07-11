@@ -22,20 +22,23 @@ class State(rx.State):
     uploaded_image_path: str = ""
     results: list[str] = []
 
-    async def handle_upload(self, files: list[rx.UploadFile]):
+    async def handle_upload(self, files):
         if not files:
             return
         
         self.is_processing = True
         self.results = []
-        upload_data = await files[0].read()
         
-        # Yüklenen dosyayı geçici olarak kaydet
-        output_path = rx.get_asset_path(files[0].filename)
+        upload_data = files[0]
+        
+        temp_filename = "uploaded_image.jpg"
+        
+        output_path = os.path.join("assets", temp_filename)
+        
         with open(output_path, "wb") as f:
             f.write(upload_data)
         
-        self.uploaded_image_path = files[0].filename
+        self.uploaded_image_path = temp_filename
         
         # Arama yap
         self.perform_search(output_path)
@@ -68,6 +71,7 @@ def index():
                         rx.button("Görsel Seç", is_disabled=State.is_processing),
                         rx.text("veya sürükleyip bırakın."),
                         id="upload_area",
+                        # DOĞRU KULLANIM:
                         on_drop=State.handle_upload,
                         border="2px dashed #ccc",
                         padding="2em",
@@ -75,7 +79,7 @@ def index():
                     ),
                     rx.cond(
                         State.is_processing,
-                        rx.center(rx.circular_progress(is_indeterminate=True), margin_top="2em")
+                        rx.center(rx.spinner(), margin_top="2em")
                     ),
                     rx.cond(
                         State.uploaded_image_path,
@@ -92,7 +96,7 @@ def index():
                             rx.grid(
                                 rx.foreach(
                                     State.results,
-                                    lambda path: rx.image(src=path.replace('dataset/', ''), width="150px", height="auto", border="1px solid #eee", padding="0.3em")
+                                    lambda path: rx.image(src=path, width="150px")
                                 ),
                                 columns="5",
                                 spacing="4"
@@ -119,4 +123,3 @@ def index():
 
 app = rx.App()
 app.add_page(index, title="Görsel Arama Motoru")
-app.compile()
